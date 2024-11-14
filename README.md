@@ -51,4 +51,4 @@ This repository is licensed under the MIT License. For more details, see the [LI
 
 ## Contact
 
-For questions, suggestions, or issues related to **OutbreakX-Attic**, please open an issue or reach out via the main [OutbreakX](https://github.com/yourusername/outbreakx) repository.
+For questions, suggestions, or issues related to **OutbreakX-Attic**, please open an issue or reach out via the main [OutbreakX](https://github.com/SixthFlow-Reserach-OS/OutbreakX/)repository.
