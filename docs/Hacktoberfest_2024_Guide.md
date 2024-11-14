@@ -13,7 +13,7 @@ Hacktoberfest is a month-long celebration of open-source software held in Octobe
    - **Help Wanted**: Issues that need community support.
    - **Hacktoberfest**: Priority issues for Hacktoberfest participants.
 
-   You can view the full list of available issues [here](https://github.com/SixthFlow-Reserach-OS/OutbreakX/issues).
+   You can view the full list of available issues [here](https://github.com/SixthFlow-Reserach-OS/outbreakx-attic/issues).
 
 2. **Choose an Area of Interest**:
    - **Frontend**: Help improve the ReactJS interface, enhance UI/UX, or integrate OpenStreetMaps features.
