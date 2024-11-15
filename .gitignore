@@ -1,33 +1,10 @@
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
 # Virtual Environment
-venv/
-env/
-ENV/
 .env
 .venv
-env.bak/
-venv.bak/
+
 
 # IDE specific files
 .idea/
@@ -37,35 +14,11 @@ venv.bak/
 .DS_Store
 .vs/
 
-# Project specific
-output/           # Simulation output directory
-*.csv            # Data files
-*.xlsx           # Excel files
-*.png            # Plot images
-*.jpg
-*.jpeg
-*.pdf
-*.log
+# Project specific directories
+data/            # Ignore everything in data folder
+output/          # Ignore everything in output folder
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg 
+# Keep the folders but ignore their contents
+!data/.gitkeep
+!output/.gitkeep
+ 
