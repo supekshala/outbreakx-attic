@@ -38,18 +38,20 @@ pip install -r requirements.txt
 ```python
 from seir_model import SEIRModel
 
-# Initialize the model with parameters
-model = SEIRModel(
+# Initialize simulation with your specified parameters
+simulation = DengueOutbreakSimulation(
     beta=0.3,    # Infection rate
     sigma=0.2,   # Incubation rate (1/latent period)
     gamma=0.1,   # Recovery rate (1/infectious period)
     N=10000,     # Total population size
-    E0=100       # Initial exposed population
+    E0=100,      # Initial exposed population
+    I0=0,        # Initial infected population
+    R0=0,        # Initial recovered population
+    duration_days=100  # Simulation duration
 )
 
-# Run simulation
-results = model.simulate(days=100)
-model.plot_results()
+# Run the simulation
+df, seir_data = simulation.run_simulation()
 ```
 
 ## Model Parameters
