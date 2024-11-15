@@ -15,10 +15,6 @@ __pycache__/
 .vs/
 
 # Project specific directories
-data/            # Ignore everything in data folder
-output/          # Ignore everything in output folder
-
-# Keep the folders but ignore their contents
-!data/.gitkeep
-!output/.gitkeep
+**/data/            
+**/output/           
  
