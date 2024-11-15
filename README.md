@@ -23,7 +23,6 @@ To get started with the utilities provided in **OutbreakX-Attic**, you may follo
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/outbreakx-attic.git
-   cd outbreakx-attic
    ```
 
    ```bash
