@@ -1,28 +1,35 @@
+# Import required libraries
 from SIER_Model import DengueOutbreakSimulation, run_dengue_simulation
 import matplotlib.pyplot as plt
 
-# Initialize simulation with your specified parameters
+# Initialize simulation with epidemiological parameters
+# These parameters model the spread of dengue fever in a population
 simulation = DengueOutbreakSimulation(
-    beta=0.3,    # Infection rate
-    sigma=0.2,   # Incubation rate (1/latent period)
-    gamma=0.1,   # Recovery rate (1/infectious period)
-    N=10000,     # Total population size
-    E0=100,      # Initial exposed population
-    I0=0,        # Initial infected population
-    R0=0,        # Initial recovered population
-    duration_days=100  # Simulation duration
+    beta=0.3,    # Infection rate: probability of disease transmission per contact between S and I
+    sigma=0.2,   # Incubation rate: rate at which exposed individuals become infectious (1/latent period)
+    gamma=0.1,   # Recovery rate: rate at which infected individuals recover (1/infectious period)
+    N=10000,     # Total population size: number of individuals in the simulation
+    E0=100,      # Initial exposed population: number of people exposed at start
+    I0=0,        # Initial infected population: number of infected people at start
+    R0=0,        # Initial recovered population: number of recovered people at start
+    duration_days=100  # Length of simulation in days
 )
 
-# Run the simulation
+# Execute the simulation
+# Returns two objects:
+# - df: detailed DataFrame with daily counts
+# - seir_data: dictionary containing S, E, I, R populations over time
 df, seir_data = simulation.run_simulation()
 
-# Plot the results
-plt.figure(figsize=(10, 6))
-plt.plot(seir_data['S'], label='Susceptible')
-plt.plot(seir_data['E'], label='Exposed')
-plt.plot(seir_data['I'], label='Infected')
-plt.plot(seir_data['R'], label='Recovered')
+# Create visualization of the simulation results
+plt.figure(figsize=(10, 6))  # Set the plot size to 10x6 inches
+# Plot each compartment (S, E, I, R) as a separate line
+plt.plot(seir_data['S'], label='Susceptible')  # People who can get infected
+plt.plot(seir_data['E'], label='Exposed')      # People who are exposed but not infectious
+plt.plot(seir_data['I'], label='Infected')     # People who are infectious
+plt.plot(seir_data['R'], label='Recovered')    # People who have recovered and are immune
 
+# Add plot labels and styling
 plt.title('SEIR Model Simulation Results')
 plt.xlabel('Time (days)')
 plt.ylabel('Population')
@@ -30,5 +37,5 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Save the results
+# Save the simulation results to files in the output directory
 simulation.save_data(df, seir_data, output_dir='output/')
