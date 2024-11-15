@@ -18,5 +18,5 @@ data/
 output/
 
 # Specific output files (these are redundant if output/ is ignored)
-**/outputseir_curve.png 
+**/outputseir_curve.png
 

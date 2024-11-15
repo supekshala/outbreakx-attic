@@ -1,6 +1,8 @@
 # Import required libraries
 from SIER_Model import DengueOutbreakSimulation, run_dengue_simulation
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 # Initialize simulation with epidemiological parameters
 # These parameters model the spread of dengue fever in a population
@@ -37,5 +39,10 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Save the simulation results to files in the output directory
-simulation.save_data(df, seir_data, output_dir='output/')
+# Create timestamped output directory
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+output_dir = os.path.join('output', f'simulation_{timestamp}')
+os.makedirs(output_dir, exist_ok=True)
+
+# Save the simulation results to files in the timestamped output directory
+simulation.save_data(df, seir_data, output_dir=output_dir)

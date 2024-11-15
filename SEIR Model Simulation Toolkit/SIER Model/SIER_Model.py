@@ -332,7 +332,7 @@ class DengueOutbreakSimulation:
             traceback.print_exc()
 
 def run_dengue_simulation():
-    """Run the simulation with explicit output directory"""
+    """Run the simulation with timestamped output directory"""
     try:
         print("Starting dengue outbreak simulation...")
         
@@ -342,9 +342,10 @@ def run_dengue_simulation():
         # Run simulation
         df, seir_data = sim.run_simulation()
         
-        # Define output directory (use absolute path)
+        # Create timestamped output directory
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.join(current_dir, 'output')
+        output_dir = os.path.join(current_dir, 'output', f'simulation_{timestamp}')
         
         # Save all data
         print(f"\nSaving data to: {output_dir}")
@@ -353,6 +354,7 @@ def run_dengue_simulation():
         print("\nSimulation complete!")
         print(f"Total cases generated: {len(df)}")
         print(f"Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
+        print(f"Results saved in: {output_dir}")
         
         return df, seir_data
         
