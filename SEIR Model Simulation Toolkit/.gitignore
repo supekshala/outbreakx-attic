@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+
+# Virtual Environment
+.env
+.venv
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.vs/
+
+# Project specific directories
+data/
+output/
+
+# Specific output files (these are redundant if output/ is ignored)
+**/outputseir_curve.png
