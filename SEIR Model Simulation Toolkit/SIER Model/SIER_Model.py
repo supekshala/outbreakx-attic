@@ -14,8 +14,8 @@ from reportlab.lib.units import inch
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-class DengueOutbreakSimulation:
-    def __init__(self, duration_days=100, N=1000000, I0=100, R0=0, E0=0,
+class DiseaseOutbreakSimulation:
+    def __init__(self, disease_name="Unknown Disease", duration_days=100, N=1000000, I0=100, R0=0, E0=0,
                  beta=0.4, sigma=1/5.5, gamma=1/7,
                  center_lat=6.9271, center_lon=79.8612, radius_km=20):
         if N <= 0 or I0 < 0 or R0 < 0 or E0 < 0:
@@ -23,6 +23,7 @@ class DengueOutbreakSimulation:
         if I0 + R0 + E0 > N:
             raise ValueError("Sum of I0, R0, and E0 cannot exceed total population N")
         
+        self.disease_name = disease_name
         self.duration_days = duration_days
         self.N = N
         self.I0 = I0
@@ -78,6 +79,7 @@ class DengueOutbreakSimulation:
                     
                     data.append({
                         'patient_id': patient_id,
+                        'disease_name': self.disease_name,
                         'timestamp': start_date + timedelta(days=day, hours=random.randint(0, 23), minutes=random.randint(0, 59)),
                         'age': random.randint(1, 90),
                         'severity': random.choices(['Mild', 'Moderate', 'Severe'], weights=[0.7, 0.25, 0.05])[0],
@@ -164,7 +166,7 @@ class DengueOutbreakSimulation:
             )
             
             elements = []
-            elements.append(Paragraph("Dengue Outbreak Simulation Summary", title_style))
+            elements.append(Paragraph(f"{self.disease_name} Outbreak Simulation Summary", title_style))
             elements.append(Paragraph(
                 f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 styles['Normal']
@@ -241,7 +243,7 @@ class DengueOutbreakSimulation:
             )
             
             elements = []
-            elements.append(Paragraph("Dengue Outbreak Detailed Patient Records", title_style))
+            elements.append(Paragraph(f"{self.disease_name} Outbreak Detailed Patient Records", title_style))
             elements.append(Paragraph(
                 f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                 styles['Normal']
@@ -267,13 +269,14 @@ class DengueOutbreakSimulation:
                 df_chunk['longitude'] = df_chunk['longitude'].round(4)
                 
                 # Create table header
-                headers = ['Patient ID', 'Date & Time', 'Age', 'Severity', 'Location (Lat, Lon)']
+                headers = ['Patient ID', 'Disease', 'Date & Time', 'Age', 'Severity', 'Location (Lat, Lon)']
                 
                 # Prepare data for table
                 table_data = [headers]
                 for _, row in df_chunk.iterrows():
                     table_data.append([
                         row['patient_id'],
+                        row['disease_name'],
                         row['timestamp'],
                         str(row['age']),
                         row['severity'],
@@ -281,7 +284,7 @@ class DengueOutbreakSimulation:
                     ])
 
                 # Create and style table
-                table = Table(table_data, colWidths=[80, 100, 50, 70, 150])
+                table = Table(table_data, colWidths=[80, 100, 120, 50, 70, 150])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -293,6 +296,7 @@ class DengueOutbreakSimulation:
                     ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                     ('TOPPADDING', (0, 0), (-1, -1), 3),
+                    ('WORDWRAP', (0, 0), (-1, -1), True),
                 ]))
                 
                 # Add page number
@@ -331,13 +335,21 @@ class DengueOutbreakSimulation:
             import traceback
             traceback.print_exc()
 
-def run_dengue_simulation():
+def run_disease_simulation():
     """Run the simulation with timestamped output directory"""
     try:
-        print("Starting dengue outbreak simulation...")
+        print("\n" + "="*50)
+        print("DISEASE OUTBREAK SIMULATION SYSTEM")
+        print("="*50 + "\n")
         
-        # Create simulation instance
-        sim = DengueOutbreakSimulation(duration_days=100)
+        # Prompt for disease name
+        disease_name = input("Enter the disease name for simulation: ")
+        print("\n" + "-"*50)
+        print(f"Starting simulation for: {disease_name}")
+        print("-"*50 + "\n")
+        
+        # Create simulation instance with disease name
+        sim = DiseaseOutbreakSimulation(disease_name=disease_name, duration_days=100)
         
         # Run simulation
         df, seir_data = sim.run_simulation()
@@ -351,10 +363,13 @@ def run_dengue_simulation():
         print(f"\nSaving data to: {output_dir}")
         sim.save_data(df, seir_data, output_dir)
         
-        print("\nSimulation complete!")
-        print(f"Total cases generated: {len(df)}")
+        print("\n" + "="*50)
+        print(f"SIMULATION RESULTS FOR: {disease_name.upper()}")
+        print("="*50)
+        print(f"Total cases generated: {len(df):,}")
         print(f"Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
         print(f"Results saved in: {output_dir}")
+        print("="*50 + "\n")
         
         return df, seir_data
         
@@ -365,4 +380,4 @@ def run_dengue_simulation():
         return None, None
 
 if __name__ == "__main__":
-    df, seir_data = run_dengue_simulation()
+    df, seir_data = run_disease_simulation()
