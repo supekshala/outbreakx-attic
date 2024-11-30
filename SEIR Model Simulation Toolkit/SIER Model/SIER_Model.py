@@ -13,11 +13,13 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import inch
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PyPDF2 import PdfReader, PdfWriter
+import io
 
 class DiseaseOutbreakSimulation:
-    def __init__(self, disease_name="Unknown Disease", duration_days=100, N=1000000, I0=100, R0=0, E0=0,
+    def __init__(self, disease_name="Unknown Disease", duration_days=100, N=2000, I0=100, R0=0, E0=0,
                  beta=0.4, sigma=1/5.5, gamma=1/7,
-                 center_lat=6.9271, center_lon=79.8612, radius_km=20):
+                 center_lat=6.9271, center_lon=79.8612, radius_km=20, start_date=None):
         if N <= 0 or I0 < 0 or R0 < 0 or E0 < 0:
             raise ValueError("Population and initial values must be non-negative")
         if I0 + R0 + E0 > N:
@@ -36,6 +38,7 @@ class DiseaseOutbreakSimulation:
         self.center_lat = center_lat
         self.center_lon = center_lon
         self.radius_km = radius_km
+        self.start_date = start_date or datetime.now()
 
     def seir_model(self, y, t, N, beta, sigma, gamma):
         S, E, I, R = y
@@ -63,7 +66,7 @@ class DiseaseOutbreakSimulation:
         return df, seir_data
 
     def generate_patient_data(self, I):
-        start_date = datetime.now()
+        start_date = self.start_date
         data = []
         patient_counter = 1  # Initialize counter for patient IDs
 
@@ -134,186 +137,187 @@ class DiseaseOutbreakSimulation:
         plt.close()
         return seir_plot_path
 
+    def compress_pdf(self, input_path, output_path=None):
+        """Compress PDF file"""
+        try:
+            if output_path is None:
+                output_path = input_path
+            
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
+
+            # Copy pages and compress
+            for page in reader.pages:
+                page.compress_content_streams()  # This compresses the PDF content
+                writer.add_page(page)
+            
+            # Save compressed PDF
+            with open(output_path, "wb") as output_file:
+                writer.write(output_file)
+            
+            # Get and print compression ratio
+            original_size = os.path.getsize(input_path) / 1024  # KB
+            compressed_size = os.path.getsize(output_path) / 1024  # KB
+            ratio = (1 - (compressed_size / original_size)) * 100
+            
+            print(f"Original size: {original_size:.1f} KB")
+            print(f"Compressed size: {compressed_size:.1f} KB")
+            print(f"Compression ratio: {ratio:.1f}%")
+            
+            return output_path
+            
+        except Exception as e:
+            print(f"Error compressing PDF: {str(e)}")
+            return None
+
     def generate_pdf_reports(self, df, seir_data, output_dir='data/'):
-        # Ensure the output directory exists
+        """Generate compressed PDF reports with all fields preserved"""
         os.makedirs(output_dir, exist_ok=True)
         
         try:
-            # First, create the SEIR plot and save it
-            seir_plot_path = self.create_summary_visualizations(seir_data, output_dir)
-            print(f"SEIR plot saved to: {seir_plot_path}")
-
-            # Initialize ReportLab styles
+            # Initialize styles with minimal settings
             styles = getSampleStyleSheet()
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=24,
+                fontSize=8,
                 alignment=TA_CENTER,
-                spaceAfter=30
+                spaceAfter=5
             )
 
-            # Generate Summary PDF
-            print("Generating summary PDF...")
-            summary_pdf_path = os.path.join(output_dir, 'dengue_outbreak_summary.pdf')
+            # Generate Summary PDF (keeping it minimal)
+            summary_pdf_path = os.path.join(output_dir, 'outbreak_summary.pdf')
             doc = SimpleDocTemplate(
                 summary_pdf_path,
                 pagesize=A4,
-                rightMargin=72,
-                leftMargin=72,
-                topMargin=72,
-                bottomMargin=72
+                rightMargin=15,
+                leftMargin=15,
+                topMargin=15,
+                bottomMargin=15,
+                compress=True,
+                pageCompression=1  # Added maximum compression
             )
             
             elements = []
-            elements.append(Paragraph(f"{self.disease_name} Outbreak Simulation Summary", title_style))
-            elements.append(Paragraph(
-                f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                styles['Normal']
-            ))
-            elements.append(Spacer(1, 20))
-
-            param_data = [
-                ["Parameter", "Value"],
+            elements.append(Paragraph(f"{self.disease_name} Outbreak Summary", title_style))
+            elements.append(Spacer(1, 5))
+            
+            # Summary table with minimal formatting
+            summary_data = [
                 ["Total Population", f"{self.N:,}"],
-                ["Simulation Duration", f"{self.duration_days} days"],
+                ["Duration", f"{self.duration_days} days"],
                 ["Total Cases", f"{len(df):,}"],
-                ["Initial Infected", f"{self.I0:,}"],
-                ["Transmission Rate (β)", f"{self.beta:.3f}"],
-                ["Incubation Rate (σ)", f"{self.sigma:.3f}"],
-                ["Recovery Rate (γ)", f"{self.gamma:.3f}"],
-            ]
-            param_table = Table(param_data, colWidths=[200, 200])
-            param_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ]))
-            elements.append(param_table)
-            elements.append(Spacer(1, 20))
-
-            seir_plot_path = self.create_summary_visualizations(seir_data, output_dir)
-            elements.append(Image(seir_plot_path, width=6*inch, height=4*inch))
-            elements.append(Spacer(1, 20))
-
-            elements.append(Paragraph("Key Statistics:", styles['Heading2']))
-            severity_counts = df['severity'].value_counts()
-            
-            stats_data = [
-                ["Statistic", "Value"],
-                ["Average Age", f"{df['age'].mean():.1f}"],
-                ["Age Range", f"{df['age'].min()} - {df['age'].max()}"],
-                ["Mild Cases", f"{severity_counts.get('Mild', 0)}"],
-                ["Moderate Cases", f"{severity_counts.get('Moderate', 0)}"],
-                ["Severe Cases", f"{severity_counts.get('Severe', 0)}"],
+                ["Date Range", f"{df['timestamp'].min().strftime('%Y-%m-%d')} to {df['timestamp'].max().strftime('%Y-%m-%d')}"]
             ]
             
-            stats_table = Table(stats_data, colWidths=[200, 200])
-            stats_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            summary_table = Table(summary_data, colWidths=[80, 120])
+            summary_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
             ]))
-            elements.append(stats_table)
-
-            # Build the document
+            elements.append(summary_table)
             doc.build(elements)
-            print(f"Summary PDF saved to: {summary_pdf_path}")
 
-            # Generate Detailed PDF
-            print("Generating detailed PDF...")
-            detailed_pdf_path = os.path.join(output_dir, 'dengue_outbreak_detailed.pdf')
+            # Generate Detailed PDF with maximum compression
+            detailed_pdf_path = os.path.join(output_dir, 'outbreak_detailed.pdf')
             doc = SimpleDocTemplate(
                 detailed_pdf_path,
                 pagesize=landscape(A4),
-                rightMargin=30,
-                leftMargin=30,
-                topMargin=30,
-                bottomMargin=30
+                rightMargin=10,
+                leftMargin=10,
+                topMargin=10,
+                bottomMargin=10,
+                compress=True,
+                pageCompression=1
             )
             
             elements = []
-            elements.append(Paragraph(f"{self.disease_name} Outbreak Detailed Patient Records", title_style))
-            elements.append(Paragraph(
-                f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                styles['Normal']
-            ))
-            elements.append(Spacer(1, 20))
-
-            # Add pagination info
-            page_size = 50  # Number of records per page
-            total_pages = (len(df) + page_size - 1) // page_size
-
-            # Process data in chunks
-            for page in range(total_pages):
-                if page > 0:
-                    elements.append(PageBreak())
-                
-                start_idx = page * page_size
-                end_idx = min((page + 1) * page_size, len(df))
-                df_chunk = df.iloc[start_idx:end_idx].copy()
-                
-                # Format the data
-                df_chunk['timestamp'] = df_chunk['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
-                df_chunk['latitude'] = df_chunk['latitude'].round(4)
-                df_chunk['longitude'] = df_chunk['longitude'].round(4)
-                
-                # Create table header
-                headers = ['Patient ID', 'Disease', 'Date & Time', 'Age', 'Severity', 'Location (Lat, Lon)']
-                
-                # Prepare data for table
-                table_data = [headers]
-                for _, row in df_chunk.iterrows():
-                    table_data.append([
+            elements.append(Paragraph(f"{self.disease_name} Detailed Records", title_style))
+            elements.append(Spacer(1, 5))
+            
+            # Add record count
+            elements.append(Paragraph(f"Total Records: {len(df):,}", 
+                                    ParagraphStyle('Info', fontSize=7, alignment=TA_CENTER)))
+            elements.append(Spacer(1, 5))
+            
+            # Prepare data efficiently
+            df_formatted = df.copy()
+            df_formatted['timestamp'] = df_formatted['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
+            df_formatted['latitude'] = df_formatted['latitude'].round(4)
+            df_formatted['longitude'] = df_formatted['longitude'].round(4)
+            
+            # Headers
+            headers = ['Patient ID', 'Disease', 'Date & Time', 'Age', 'Severity', 'Latitude', 'Longitude']
+            
+            # Process in larger chunks for fewer page breaks
+            chunk_size = 150  # Increased from 45 to 150 for better compression
+            chunks = [df_formatted[i:i + chunk_size] for i in range(0, len(df_formatted), chunk_size)]
+            
+            # Create table for each chunk
+            for chunk in chunks:
+                data = [headers]
+                for _, row in chunk.iterrows():
+                    data.append([
                         row['patient_id'],
                         row['disease_name'],
                         row['timestamp'],
                         str(row['age']),
                         row['severity'],
-                        f"{row['latitude']}, {row['longitude']}"
+                        f"{row['latitude']}",
+                        f"{row['longitude']}"
                     ])
-
-                # Create and style table
-                table = Table(table_data, colWidths=[80, 100, 120, 50, 70, 150])
+                
+                # Create table with optimized settings
+                table = Table(data, colWidths=[60, 45, 70, 25, 45, 45, 45])
                 table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 7),  # Header font
+                    ('FONTSIZE', (0, 1), (-1, -1), 6),  # Data font
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('FONTSIZE', (0, 1), (-1, -1), 8),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                    ('TOPPADDING', (0, 0), (-1, -1), 3),
-                    ('WORDWRAP', (0, 0), (-1, -1), True),
+                    ('GRID', (0, 0), (-1, -1), 0.15, colors.grey),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('TOPPADDING', (0, 0), (-1, -1), 1),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
                 ]))
                 
-                # Add page number
-                elements.append(Paragraph(
-                    f"Page {page + 1} of {total_pages}",
-                    ParagraphStyle('PageNum', parent=styles['Normal'], alignment=TA_CENTER)
-                ))
-                elements.append(Spacer(1, 10))
                 elements.append(table)
-
+                elements.append(PageBreak())
+            
+            # Remove last page break
+            if elements:
+                elements.pop()
+            
+            # Build PDF with maximum compression
             doc.build(elements)
-            print(f"Detailed PDF saved to: {detailed_pdf_path}")
+            
+            # After generating the detailed PDF, compress it
+            print("\nCompressing detailed PDF...")
+            compressed_pdf_path = os.path.join(output_dir, 'outbreak_detailed_compressed.pdf')
+            self.compress_pdf(detailed_pdf_path, compressed_pdf_path)
+            
+            # Replace original with compressed version if smaller
+            if os.path.getsize(compressed_pdf_path) < os.path.getsize(detailed_pdf_path):
+                os.replace(compressed_pdf_path, detailed_pdf_path)
+                print("Using compressed version of detailed PDF")
+            else:
+                os.remove(compressed_pdf_path)
+                print("Original PDF was already optimally compressed")
+            
+            # Report final file sizes
+            summary_size = os.path.getsize(summary_pdf_path) / 1024
+            detailed_size = os.path.getsize(detailed_pdf_path) / 1024
+            print(f"\nFinal PDF sizes:")
+            print(f"Summary PDF: {summary_size:.1f} KB")
+            print(f"Detailed PDF: {detailed_size:.1f} KB")
+            
+            return summary_pdf_path, detailed_pdf_path
 
         except Exception as e:
             print(f"Error generating PDFs: {str(e)}")
             import traceback
             traceback.print_exc()
+            return None, None
 
     def save_data(self, df, seir_data, output_dir='output/'):
         """Save all simulation data to files"""
@@ -336,20 +340,33 @@ class DiseaseOutbreakSimulation:
             traceback.print_exc()
 
 def run_disease_simulation():
-    """Run the simulation with timestamped output directory"""
+    """Run the simulation with timestamped output directory and PDF compression"""
     try:
         print("\n" + "="*50)
         print("DISEASE OUTBREAK SIMULATION SYSTEM")
         print("="*50 + "\n")
         
-        # Prompt for disease name
+        # Prompt for disease name and start date
         disease_name = input("Enter the disease name for simulation: ")
+        while True:
+            start_date_str = input("Enter simulation start date (YYYY-MM-DD): ")
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                break
+            except ValueError:
+                print("Invalid date format. Please use YYYY-MM-DD format.")
+        
         print("\n" + "-"*50)
         print(f"Starting simulation for: {disease_name}")
+        print(f"Start date: {start_date.strftime('%Y-%m-%d')}")
         print("-"*50 + "\n")
         
-        # Create simulation instance with disease name
-        sim = DiseaseOutbreakSimulation(disease_name=disease_name, duration_days=100)
+        # Create simulation instance
+        sim = DiseaseOutbreakSimulation(
+            disease_name=disease_name,
+            duration_days=100,
+            start_date=start_date
+        )
         
         # Run simulation
         df, seir_data = sim.run_simulation()
@@ -358,10 +375,50 @@ def run_disease_simulation():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         current_dir = os.path.dirname(os.path.abspath(__file__))
         output_dir = os.path.join(current_dir, 'output', f'simulation_{timestamp}')
+        os.makedirs(output_dir, exist_ok=True)
         
-        # Save all data
-        print(f"\nSaving data to: {output_dir}")
-        sim.save_data(df, seir_data, output_dir)
+        # Save CSV data
+        csv_path = os.path.join(output_dir, 'outbreak_data.csv')
+        df.to_csv(csv_path, index=False)
+        print("CSV data saved successfully")
+        
+        # Generate PDFs with compression
+        print("\nGenerating and compressing PDFs...")
+        summary_pdf_path = os.path.join(output_dir, 'outbreak_summary.pdf')
+        detailed_pdf_path = os.path.join(output_dir, 'outbreak_detailed.pdf')
+        
+        # Generate initial PDFs
+        sim.generate_pdf_reports(df, seir_data, output_dir)
+        
+        # Compress the detailed PDF
+        print("\nApplying additional compression to detailed PDF...")
+        compressed_pdf_path = os.path.join(output_dir, 'outbreak_detailed_compressed.pdf')
+        
+        # Compress using PyPDF2
+        reader = PdfReader(detailed_pdf_path)
+        writer = PdfWriter()
+        
+        for page in reader.pages:
+            page.compress_content_streams()  # This compresses the PDF content
+            writer.add_page(page)
+        
+        # Save compressed version
+        with open(compressed_pdf_path, "wb") as output_file:
+            writer.write(output_file)
+        
+        # Compare sizes and use the smaller version
+        original_size = os.path.getsize(detailed_pdf_path) / 1024  # KB
+        compressed_size = os.path.getsize(compressed_pdf_path) / 1024  # KB
+        
+        if compressed_size < original_size:
+            os.replace(compressed_pdf_path, detailed_pdf_path)
+            print(f"Compression successful:")
+            print(f"Original size: {original_size:.1f} KB")
+            print(f"Compressed size: {compressed_size:.1f} KB")
+            print(f"Reduction: {((original_size - compressed_size) / original_size * 100):.1f}%")
+        else:
+            os.remove(compressed_pdf_path)
+            print("Original PDF was already optimally compressed")
         
         print("\n" + "="*50)
         print(f"SIMULATION RESULTS FOR: {disease_name.upper()}")
